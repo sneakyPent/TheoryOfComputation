@@ -194,8 +194,6 @@ body:  %empty { $$=" ";}
 
 %%
 int main () {
-  if ( yyparse() == 0 )
-    printf("Accepted!\n");
-  else
+  if ( yyparse() != 0 )
     printf("Rejected!\n");
 }

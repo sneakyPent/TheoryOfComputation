@@ -57,8 +57,19 @@ extern int line_num;
 %type <str> type_spec
 %type <str> expr start_func
 %type <str> init_decl init_decl_list
-%type <str> const_decl vars_decl func_decl
+%type <str> const_decl vars_decl //func_decl
 %type <str> sec_func func_arg_list_item func_arg_list type_spec_ret
+%type <str> func_call call_func_arg_list_item call_func_arg_list command
+%right KW_NOT
+%right TK_POWER
+%left '+' '-'
+%left '*' '/' '%'
+%left TK_EQ TK_NEQ '<' TK_LEQ 
+%left KW_AND KW_OR
+%precedence NEG POS
+
+
+
 
 %%
 
@@ -99,7 +110,6 @@ init_decl_list init_decl { $$ = template("%s\n%s", $1, $2); }
 init_decl: 
 const_decl
 | vars_decl
-| func_decl
 | sec_func
 ;
 
@@ -127,20 +137,11 @@ decl_list_item_id TK_ASSGN expr { $$ = template("%s =%s", $1, $3);}
 ;
 
 decl_list_item_id: RG_IDENT { $$ = $1; } 
-| RG_IDENT '[' RG_INT ']' { $$ = template("*%s", $1); }
+| RG_IDENT '[' expr ']' { $$ = template("*%s", $1); }
 ;
 
 
 // ********************************var declaration********************************
-func_arg_list:
-func_arg_list ',' func_arg_list_item{ $$ = template("%s, %s", $1, $3); }
-| func_arg_list_item { $$ = template("%s", $1); }
-;
-
-func_arg_list_item:
-RG_IDENT ':' type_spec { $$ = template("%s %s", $3, $1); }
-// | RG_IDENT '[' RG_INT ']' { $$ = template("*%s %s", $6, $1); }
-;
 
 vars_decl:
 KW_VAR var_decl_list ':' type_spec ';' { $$ = template("%s %s;", $4, $2); }
@@ -159,11 +160,36 @@ var_list_item_id TK_ASSGN expr { $$ = template("%s = %s", $1, $3);}
 
 var_list_item_id: 
 RG_IDENT { $$ = $1; } 
-| RG_IDENT '[' RG_INT ']' { $$ = template("*%s", $1); }
+| RG_IDENT '[' RG_INT ']' { $$ = template("%s[%s]", $1, $3); }
 ;
 
 
 // ********************************function declaration********************************
+
+func_arg_list:
+func_arg_list ',' func_arg_list_item{ $$ = template("%s, %s", $1, $3); }
+| func_arg_list_item { $$ = template("%s", $1); }
+;
+
+func_arg_list_item:
+RG_IDENT ':' type_spec { $$ = template("%s %s", $3, $1); }
+|RG_IDENT '['']'':' type_spec { $$ = template("%s %s*", $5, $1); }
+;
+
+func_call:
+RG_IDENT '(' ')'  {$$ = template("%s();", $1);}
+|RG_IDENT '(' call_func_arg_list ')'  {$$ = template("%s(%s);", $1,$3);}
+;
+
+call_func_arg_list:	
+call_func_arg_list ',' call_func_arg_list_item{ $$ = template("%s, %s", $1, $3); }
+| call_func_arg_list_item { $$ = template("%s", $1); }
+;
+
+call_func_arg_list_item:
+RG_IDENT { $$ = template("%s", $1); }
+|RG_IDENT '['RG_INT']' { $$ = template("%s[%s] ", $1,$3); }
+;
 
 start_func:
 KW_FUNCTION KW_START '(' ')' ':' KW_VOID '{' body '}' { $$ = template("%s", $8); }
@@ -172,22 +198,36 @@ KW_FUNCTION KW_START '(' ')' ':' KW_VOID '{' body '}' { $$ = template("%s", $8);
 
 body:  %empty { $$="";}
 | decl body {$$ = template("\t%s\n%s", $1,$2);}
+| command body {$$ = template("\t%s\n%s", $1,$2);}
 ;
 
-func_decl:
-KW_FUNCTION RG_IDENT '(' ')' ':' type_spec ';' { $$ = template("%s %s();", $6, $2); }
-| KW_FUNCTION RG_IDENT '(' func_arg_list ')' ';' { $$ = template("void %s(%s); ", $2 , $4); }
+command:
+decl_list_item_id TK_ASSGN expr ';' {$$ = template("%s = %s;", $1, $3);}
+| func_call';' {$$=template("%s;",$1);}
 ;
+
+// func_decl:
+// KW_FUNCTION RG_IDENT '(' ')' ':' type_spec ';' { $$ = template("%s %s();", $6, $2); }
+// | KW_FUNCTION RG_IDENT '(' func_arg_list ')' ';' { $$ = template("void %s(%s); ", $2 , $4); }
+// ;
 
 
 // functions with body
 sec_func:
-KW_FUNCTION RG_IDENT '(' func_arg_list ')' ':' type_spec_ret '{' body KW_RETURN RG_IDENT ';' '}' ';' { $$ = template("%s %s(%s) {\n%s\treturn %s;\n}",$7 , $2, $4, $9, $11); }
-|KW_FUNCTION RG_IDENT '(' func_arg_list ')' ':' KW_VOID '{' body '}' ';' { $$ = template("void %s(%s) {\n%s}", $2, $4, $9); }
-|KW_FUNCTION RG_IDENT '(' func_arg_list ')' ':' KW_VOID '{' body KW_RETURN ';' '}' ';' { $$ = template("void %s(%s) {\n%s\treturn; \n}", $2, $4, $9); }
+KW_FUNCTION RG_IDENT '(' func_arg_list ')' ':' type_spec_ret '{' body KW_RETURN expr ';' '}' ';' { $$ = template("\n%s %s(%s) {\n%s\treturn %s;\n}",$7 , $2, $4, $9, $11); }
+|KW_FUNCTION RG_IDENT '(' func_arg_list ')' ':' KW_VOID '{' body '}' ';' { $$ = template("\nvoid %s(%s) {\n%s}", $2, $4, $9); }
+|KW_FUNCTION RG_IDENT '(' func_arg_list ')' ':' KW_VOID '{' body KW_RETURN ';' '}' ';' { $$ = template("\nvoid %s(%s) {\n%s\treturn; \n}", $2, $4, $9); }
 ;
 
 
+type_spec_ret:
+  KW_NUMBER { $$ = "double"; }
+| KW_STRING { $$ = "char" ;}
+| KW_BOOLEAN { $$ = "int";}
+| '['']'KW_NUMBER { $$ = "double*"; }
+| '['']'KW_STRING { $$ = "char*" ;}
+| '['']'KW_BOOLEAN { $$ = "int*";}
+;
 
 
 type_spec: 
@@ -197,23 +237,32 @@ KW_NUMBER { $$ = "double"; }
 | KW_BOOLEAN { $$ = "int";}
 ;
 
-type_spec_ret:
-KW_NUMBER { $$ = "double"; }
-| KW_STRING { $$ = "char" ;}
-| KW_BOOLEAN { $$ = "int";}
-;
-
 expr:   
-RG_STR 		{ $$=$1; }
-| RG_IDENT 	{ $$=$1; }
-| RG_INT 	{ $$=$1; }
-| RG_DEC 	{ $$=$1; }
-| RG_REAL 	{ $$=$1; }
-| KW_TRUE 	{ $$="1"; }
-| KW_FALSE 	{ $$="0"; }
-
+RG_REAL 				{ $$=$1;  }
+| decl_list_item_id 	{ $$=$1;  }
+| func_call 			{ $$=$1;  }
+| RG_STR 				{ $$=$1;  }
+| RG_INT 				{ $$=$1;  }
+| RG_DEC 				{ $$=$1;  }
+| KW_TRUE 				{ $$="1"; }
+| KW_FALSE 				{ $$="0"; }
+| '('expr')' 			{ $$=template("(%s)", $2); }
+| expr '-' expr 		{ $$=template("%s - %s",$1, $3); } 
+| expr '+' expr 		{ $$=template("%s + %s",$1, $3); } 
+| '-' expr %prec NEG 	{ $$=template("-%s", $2); }
+| '+' expr %prec POS 	{ $$=template("+%s", $2); }
+| expr '*' expr 		{ $$=template("%s * %s",$1, $3); }
+| expr '/' expr 		{ $$=template("%s / %s",$1, $3); }
+| expr '%' expr 		{ $$=template("%s % s %s",$1, "%", $3); }
+| expr TK_POWER expr   	{ $$ = template("%s ^ %s", $1, $3); }
+| expr '<' expr   		{ $$ = template("%s < %s", $1, $3); }
+| expr TK_EQ expr   	{ $$ = template("%s == %s", $1, $3); }
+| expr TK_LEQ expr   	{ $$ = template("%s <= %s", $1, $3); }
+| expr TK_NEQ expr   	{ $$ = template("%s != %s", $1, $3); }
+| expr KW_AND expr   	{ $$ = template("%s && %s", $1, $3); }
+| expr KW_OR expr   	{ $$ = template("%s || %s", $1, $3); }
+| KW_NOT expr		  	{ $$ = template("!%s", $2); }
 ;
-
 
 %%
 int main () {

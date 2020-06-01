@@ -40,7 +40,7 @@ FLEX: $(LEXERNAME).o
 	
 
 clean:
-	@ rm *.tab.c *.tab.h *.yy.c *.output 
+	@ rm *.tab.c *.tab.h *.yy.c *.output myprogram.c
 
 
 help: default

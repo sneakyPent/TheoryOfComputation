@@ -58,7 +58,7 @@ extern int line_num;
 %type <str> expr start_func
 %type <str> init_decl init_decl_list
 %type <str> const_decl vars_decl func_decl
-
+%type <str> sec_func func_arg_list_item func_arg_list type_spec_ret
 
 %%
 
@@ -73,7 +73,7 @@ init_decl_list start_func
 	  puts(c_prologue); 
 	  printf("/* program */ \n\n");
 	  printf("%s\n\n", $1);
-	  printf("int main() {\n%s\n} \n", $2);
+	  printf("int main() {\n%s} \n", $2);
 	}
 }
 |start_func
@@ -86,13 +86,9 @@ init_decl_list start_func
 	  puts(c_prologue); 
 	  printf("/* program */ \n\n");
 	  printf("%s\n\n", $1);
-	  printf("int main() {\n%s\n} \n", $1);
+	  printf("int main() {\n%s} \n", $1);
 	}
 }
-;
-
-start_func:
-KW_FUNCTION KW_START '(' ')' ':' KW_VOID '{' body '}' { $$ = template("%s", $8); }
 ;
 
 init_decl_list: 
@@ -103,12 +99,10 @@ init_decl_list init_decl { $$ = template("%s\n%s", $1, $2); }
 init_decl: 
 const_decl
 | vars_decl
-| func_decl;
+| func_decl
+| sec_func
+;
 
-// decl_list: 
-// decl_list decl { $$ = template("%s\n%s", $1, $2); }
-// | decl { $$ = $1; }
-// ;
 
 decl: 
 const_decl
@@ -138,6 +132,16 @@ decl_list_item_id: RG_IDENT { $$ = $1; }
 
 
 // ********************************var declaration********************************
+func_arg_list:
+func_arg_list ',' func_arg_list_item{ $$ = template("%s, %s", $1, $3); }
+| func_arg_list_item { $$ = template("%s", $1); }
+;
+
+func_arg_list_item:
+RG_IDENT ':' type_spec { $$ = template("%s %s", $3, $1); }
+// | RG_IDENT '[' RG_INT ']' { $$ = template("*%s %s", $6, $1); }
+;
+
 vars_decl:
 KW_VAR var_decl_list ':' type_spec ';' { $$ = template("%s %s;", $4, $2); }
 ;
@@ -161,9 +165,26 @@ RG_IDENT { $$ = $1; }
 
 // ********************************function declaration********************************
 
+start_func:
+KW_FUNCTION KW_START '(' ')' ':' KW_VOID '{' body '}' { $$ = template("%s", $8); }
+|KW_FUNCTION KW_START '(' ')' ':' KW_VOID '{' body KW_RETURN ';''}' { $$ = template("%s\treturn;\n", $8); }
+;
+
+body:  %empty { $$="";}
+| decl body {$$ = template("\t%s\n%s", $1,$2);}
+;
+
 func_decl:
 KW_FUNCTION RG_IDENT '(' ')' ':' type_spec ';' { $$ = template("%s %s();", $6, $2); }
-| KW_FUNCTION RG_IDENT '(' RG_IDENT ':' type_spec ')' ';' { $$ = template("void %s(%s %s); ", $2 , $6, $4); }
+| KW_FUNCTION RG_IDENT '(' func_arg_list ')' ';' { $$ = template("void %s(%s); ", $2 , $4); }
+;
+
+
+// functions with body
+sec_func:
+KW_FUNCTION RG_IDENT '(' func_arg_list ')' ':' type_spec_ret '{' body KW_RETURN RG_IDENT ';' '}' ';' { $$ = template("%s %s(%s) {\n%s\treturn %s;\n}",$7 , $2, $4, $9, $11); }
+|KW_FUNCTION RG_IDENT '(' func_arg_list ')' ':' KW_VOID '{' body '}' ';' { $$ = template("void %s(%s) {\n%s}", $2, $4, $9); }
+|KW_FUNCTION RG_IDENT '(' func_arg_list ')' ':' KW_VOID '{' body KW_RETURN ';' '}' ';' { $$ = template("void %s(%s) {\n%s\treturn; \n}", $2, $4, $9); }
 ;
 
 
@@ -173,6 +194,12 @@ type_spec:
 KW_NUMBER { $$ = "double"; }
 | KW_STRING { $$ = "char" ;}
 | KW_VOID { $$ = "void"; }
+| KW_BOOLEAN { $$ = "int";}
+;
+
+type_spec_ret:
+KW_NUMBER { $$ = "double"; }
+| KW_STRING { $$ = "char" ;}
 | KW_BOOLEAN { $$ = "int";}
 ;
 
@@ -186,11 +213,7 @@ RG_STR 		{ $$=$1; }
 | KW_FALSE 	{ $$="0"; }
 
 ;
-//  body {$$ = template("%s\n%s",  $1, $2);}
-body:  %empty { $$=" ";}
-| decl body {$$ = template("\t%s\n%s", $1,$2);}
-| KW_RETURN ';' {$$ = template("\treturn;");}
-;
+
 
 %%
 int main () {

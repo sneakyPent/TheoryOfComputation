@@ -18,7 +18,7 @@ ESCAPE_CHAR     ("\\n"|"\\t"|"\\r"|"\\\\"|"\\\'"|"\\\"")
 CONST_STR       [^\"'\\]
 
 ID              [a-zA-Z][0-9a-zA-Z_]*
-DECIMAL         [+|-]?("."{NUMBER}+)|[+|-]?({INTEGER}("."{NUMBER}?)?)
+DECIMAL         ("."{NUMBER}+)|({INTEGER}("."{NUMBER}?)?)
 REAL            {DECIMAL}([eE][+-]?{NUMBER})?
 STR             ('(({ESCAPE_CHAR}*)|({CONST_STR}*))*')|(\"(({ESCAPE_CHAR}*)|({CONST_STR}*))*\")
 
@@ -83,11 +83,11 @@ start       return KW_START;
 [ \r\t]		/* skip whitespace */
 \n 			++line_num;
 
-"/*"					          
+"/*"					          BEGIN(comment);
 <comment>[^*\n]*        /* eat anything that's not a '*' */
 <comment>"*"+[^*/\n]*   /* eat up '*'s not followed by ')'s */
 <comment>\n             ++line_num;
-<comment>"*"+"/"        
+<comment>"*"+"/"        BEGIN(INITIAL);
 
 "//"[^\n]*				/* eat line comments */
 

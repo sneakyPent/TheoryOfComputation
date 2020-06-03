@@ -13,13 +13,29 @@ var s[10] = "hello", ss: string;
 var test = false: boolean;
 const pi = 3.14: number;
 
-function readString(): string ;
-function readNumber(): number ;
-function writeString(s: string);
 
- 
+
+function prime(n[]: number,n: number ): boolean {
+  var x: number;
+  const message = "Hello world!\n" : string;
+  var test = false: boolean;
+  const pi = 3.14: number;
+  why=geting(x[0],d);
+  x=writting();
+  return true;
+};
+
+
+function f1(b: number, e: number) : number { return b; };
+function f2(s[]: string) : number { return 100; };
+function f3(x[]: number) : [] number {  return x;};
+
+
 function start(): void {
-  
-  return;
+  z=a + b * (b / a);
+  var x: number;
+  const message = "Hello world!\n" : string;
+  var test = false: boolean;
+  const pi = 3.14: number;
+  return ; 
 }
-

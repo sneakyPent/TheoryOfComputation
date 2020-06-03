@@ -60,7 +60,8 @@ extern int line_num;
 %type <str> const_decl vars_decl //func_decl
 %type <str> sec_func func_arg_list_item func_arg_list type_spec_ret
 %type <str> func_call  call_func_arg_list command 
-%type <str> while_loop conditional_expr conditional_expr_p2
+%type <str> while_loop for_loop  assign_stmt stmt 
+// %type <str> if_stmt nested_if outer_if
 
 
 %right KW_NOT
@@ -231,7 +232,10 @@ KW_NUMBER { $$ = "double"; }
 | KW_VOID { $$ = "void"; }
 | KW_BOOLEAN { $$ = "int";}
 ;
+
+
 // ******************************** EXPRESSIONS ********************************
+
 expr:   
 RG_REAL 				{ $$=$1; }
 | RG_IDENT 				{ $$=$1; } 
@@ -261,57 +265,64 @@ RG_REAL 				{ $$=$1; }
 ;
 
 
-
-// ******************************** CONDITIONAL EXPRESSIONS ********************************
-
-
-conditional_expr:
-  conditional_expr_p2 	'<' 	conditional_expr_p2   	{ $$ = template("%s < %s", $1, $3); }
-| conditional_expr_p2 	TK_EQ 	conditional_expr_p2   	{ $$ = template("%s == %s", $1, $3); }
-| conditional_expr_p2 	TK_LEQ 	conditional_expr_p2   	{ $$ = template("%s <= %s", $1, $3); }
-| conditional_expr_p2 	TK_NEQ 	conditional_expr_p2   	{ $$ = template("%s != %s", $1, $3); }
-| conditional_expr_p2 	KW_AND 	conditional_expr_p2   	{ $$ = template("%s && %s", $1, $3); }
-| conditional_expr_p2 	KW_OR 	conditional_expr_p2   	{ $$ = template("%s || %s", $1, $3); }
-| KW_NOT conditional_expr_p2		  					{ $$ = template("!%s", $2); }
-;
-
-conditional_expr_p2:
-RG_IDENT '[' conditional_expr_p2 ']' { $$=template("%s[%s]", $1, $3); }
-| RG_REAL 				{ $$=$1; }
-| RG_IDENT 				{ $$=$1; } 
-| func_call 			{ $$=$1; }
-| RG_STR 				{ $$=$1; }
-| RG_INT 				{ $$=$1; }
-| RG_DEC 				{ $$=$1; }
-| KW_TRUE 				{ $$="1";}
-| KW_FALSE 				{ $$="0";}
-| '-' conditional_expr_p2 %prec NEG 	{ $$ = template("-%s", $2); }
-| '+' conditional_expr_p2 %prec POS 	{ $$ = template("+%s", $2); }
-| '('conditional_expr_p2')' 			{ $$ = template("(%s)", $2); }
-| conditional_expr_p2 '%' conditional_expr_p2 		{ $$ = template("%s %s %s",$1, "%", $3); }
-| conditional_expr_p2 '-' conditional_expr_p2 		{ $$ = template("%s - %s",$1, $3); } 
-| conditional_expr_p2 '+' conditional_expr_p2 		{ $$ = template("%s + %s",$1, $3); } 
-| conditional_expr_p2 '*' conditional_expr_p2 		{ $$ = template("%s * %s",$1, $3); }
-| conditional_expr_p2 '/' conditional_expr_p2 		{ $$ = template("%s / %s",$1, $3); }
-| conditional_expr_p2 TK_POWER conditional_expr_p2   	{ $$ = template("%s ^ %s",$1, $3); }
-| conditional_expr
-;
-
-
 // ******************************** COMMANDS ********************************
 
+stmt:
+%empty { $$="";}
+| command stmt {$$ = template("%s\n\t%s", $1, $2);}
+;
+
+assign_stmt:
+  RG_IDENT 				TK_ASSGN expr {$$=template("%s = %s",$1, $3);}
+| RG_IDENT '[' expr ']' TK_ASSGN expr { $$=template("%s[%s]= %s", $1, $3, $6); }
+;
 
 
 command:
-decl_list_item_id TK_ASSGN expr ';' {$$ = template("\t%s = %s;", $1, $3);}
-| func_call ';'  {$$=template("\t%s;",$1);}
-| while_loop  {$$=template("\t%s;",$1  );}
+assign_stmt ';' {$$ = template("\t%s;", $1);}
+| while_loop  {$$=template("\t%s",$1  );}
+| for_loop  {$$=template("\t%s",$1  );}
+| KW_CONTINUE ';' {$$="\tcontinue;";}
+| KW_BREAK ';' {$$="\tbreak;";}
+| expr ';'  {$$=template("\t%s;",$1  );}
+// | if_stmt   {$$=template("\t%s",$1  );}
+// | KW_RETURN expr ';' {$$=template("\treturn %s;",$2  );}
+// | KW_RETURN ';' {$$="\treturn ;";}
 ;
 
+// selection_statement:
+//  KW_IF '(' expression ')' '{' statement '}'
+//   | IF '(' expression ')' '{' statement '}' ELSE '{' statement '}'
+// ;
+
+
+// if_stmt: 
+// nested_if {$$ = template("%s", $1);}
+// |outer_if {$$ = template("%s", $1);}
+// ;
+
+// nested_if:
+//   KW_IF '(' expr ')' nested_if KW_ELSE nested_if 	{$$ = template("if (%s)\n\t  %s\n \telse\n \t %s", $3, $5, $7);}
+
+// ;
+
+// outer_if:
+//   KW_IF '(' expr ')' command						{$$ = template("if (%s)\n\t %s;", $3, $5);}
+// | KW_IF '(' expr ')' nested_if KW_ELSE outer_if 	{$$ = template("\t%s;", $3);} 
+// ;
+
 while_loop:
-KW_WHILE '(' conditional_expr ')'  '{' command  '}' ';' {$$=template("while (%s) {\n\t%s\n\t}",$3 ,$6 );}
-|KW_WHILE '(' conditional_expr ')'   command    {$$=template("while (%s) {\n\t%s\n\t}",$3 ,$5 );}
+KW_WHILE '(' expr ')'  '{' stmt  '}' ';' {$$=template("while (%s) {\n\t%s};",$3 ,$6 );}
+|KW_WHILE '(' expr ')'   command    {$$=template("while (%s) \n\t%s",$3 ,$5 );}
 ;
+
+for_loop:
+KW_FOR '(' assign_stmt ';' expr ';' assign_stmt ')'  '{' stmt  '}' ';' {$$=template("for (%s; %s; %s) {\n\t%s};",$3, $5, $7, $10 );}
+| KW_FOR '(' assign_stmt ';'  ';' assign_stmt ')'  '{' stmt  '}' ';' {$$=template("for (%s; ; %s) {\n\t%s};",$3, $6, $9 );}
+| KW_FOR '(' assign_stmt ';' expr ';' assign_stmt ')'  command  {$$=template("for (%s; %s; %s) \n\t%s",$3, $5, $7, $9 );}
+| KW_FOR '(' assign_stmt ';'  ';' assign_stmt ')'  command  {$$=template("for (%s; ; %s) \n\t%s",$3, $6, $8 );}
+;
+
 
 
 %%

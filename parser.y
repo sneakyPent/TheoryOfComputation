@@ -7,6 +7,7 @@
 
 extern int yylex(void);
 extern int line_num;
+extern char linebuf[500];
 %}
 
 %union
@@ -61,7 +62,7 @@ extern int line_num;
 %type <str> sec_func func_arg_list_item func_arg_list type_spec_ret
 %type <str> func_call  call_func_arg_list command 
 %type <str> while_loop for_loop  assign_stmt stmt 
-// %type <str> if_stmt nested_if outer_if
+%type <str> if_stmt //unmatched matched //body2 // nested_if outer_if
 
 
 %right KW_NOT
@@ -128,12 +129,12 @@ const_decl
 // ******************************** CONSTANTS********************************  
 
 const_decl:
-KW_CONST const_decl_list ':' type_spec ';' { $$ = template("const %s %s;", $4, $2); }
+KW_CONST const_decl_list ':' type_spec ';' 	{ $$ = template("const %s %s;", $4, $2); }
 ;
 
 const_decl_list:
-const_decl_list ',' const_decl_list_item { $$ = template("%s, %s", $1, $3); }
-| const_decl_list_item { $$ = template("%s", $1); }
+const_decl_list ',' const_decl_list_item 	{ $$ = template("%s, %s", $1, $3); }
+| const_decl_list_item 						{ $$ = template("%s", $1); }
 ;
 
 const_decl_list_item: 
@@ -141,25 +142,25 @@ decl_list_item_id TK_ASSGN expr { $$ = template("%s =%s", $1, $3);}
 ;
 
 decl_list_item_id: RG_IDENT { $$ = $1; } 
-| RG_IDENT '[' RG_INT ']' { $$ = template("%s[%s]", $1, $3); }
+| RG_IDENT '[' RG_INT ']' 	{ $$ = template("%s[%s]", $1, $3); }
 ;
 
 
 // ******************************** VARIABLES ********************************
 
 vars_decl:
-KW_VAR var_decl_list ':' type_spec ';' { $$ = template("%s %s;", $4, $2); }
+KW_VAR var_decl_list ':' type_spec ';' 	{ $$ = template("%s %s;", $4, $2); }
 ;
 
 
 var_decl_list: 
-var_decl_list ',' var_decl_list_item { $$ = template("%s, %s", $1, $3); }
-| var_decl_list_item { $$ = template("%s", $1); }
+var_decl_list ',' var_decl_list_item 	{ $$ = template("%s, %s", $1, $3); }
+| var_decl_list_item 					{ $$ = template("%s", $1); }
 ;
 
 var_decl_list_item: 
-var_list_item_id TK_ASSGN expr { $$ = template("%s = %s", $1, $3);}
-|var_list_item_id { $$ = template("%s", $1); }
+var_list_item_id TK_ASSGN expr 	{ $$ = template("%s = %s", $1, $3);}
+|var_list_item_id 				{ $$ = template("%s", $1); }
 ;
 
 var_list_item_id: 
@@ -171,46 +172,49 @@ RG_IDENT { $$ = $1; }
 // ******************************** FUNCTIONS ********************************
 
 start_func:
-KW_FUNCTION KW_START '(' ')' ':' KW_VOID '{' body '}' { $$ = template("%s", $8); }
-|KW_FUNCTION KW_START '(' ')' ':' KW_VOID '{' body KW_RETURN ';''}' { $$ = template("%s\treturn;\n", $8); }
+KW_FUNCTION KW_START '(' ')' ':' KW_VOID '{' body '}' 					{ $$ = template("%s", $8); }
+|KW_FUNCTION KW_START '(' ')' ':' KW_VOID '{' body KW_RETURN ';' '}' 	{ $$ = template("%s\treturn;\n", $8); }
 ;
-// 							******************************	
+
+// 					******************************	
+
 sec_func:
-KW_FUNCTION RG_IDENT '(' func_arg_list ')' ':' type_spec_ret '{' body KW_RETURN expr ';' '}' ';' { $$ = template("\n%s %s(%s) {\n%s\treturn %s;\n}",$7 , $2, $4, $9, $11); }
-|KW_FUNCTION RG_IDENT '(' func_arg_list ')' ':' KW_VOID '{' body '}' ';' { $$ = template("\nvoid %s(%s) {\n%s}", $2, $4, $9); }
-|KW_FUNCTION RG_IDENT '(' func_arg_list ')' ':' KW_VOID '{' body KW_RETURN ';' '}' ';' { $$ = template("\nvoid %s(%s) {\n%s\treturn; \n}", $2, $4, $9); }
+KW_FUNCTION RG_IDENT '(' func_arg_list ')' ':' type_spec_ret '{' body KW_RETURN expr ';' '}' ';' 	{ $$ = template("\n%s %s(%s) {\n%s\treturn %s;\n}",$7 , $2, $4, $9, $11); }
+|KW_FUNCTION RG_IDENT '(' func_arg_list ')' ':' KW_VOID '{' body '}' ';' 							{ $$ = template("\nvoid %s(%s) {\n%s}", $2, $4, $9); }
+|KW_FUNCTION RG_IDENT '(' func_arg_list ')' ':' KW_VOID '{' body KW_RETURN ';' '}' ';' 				{ $$ = template("\nvoid %s(%s) {\n%s\treturn; \n}", $2, $4, $9); }
 ;
 
 func_arg_list:
-func_arg_list ',' func_arg_list_item{ $$ = template("%s, %s", $1, $3); }
-| func_arg_list_item { $$ = template("%s", $1); }
+func_arg_list ',' func_arg_list_item	{ $$ = template("%s, %s", $1, $3); }
+| func_arg_list_item 					{ $$ = template("%s", $1); }
 ;
 
 func_arg_list_item:
-RG_IDENT ':' type_spec { $$ = template("%s %s", $3, $1); }
-|RG_IDENT '['']'':' type_spec { $$ = template("%s %s*", $5, $1); }
+RG_IDENT ':' type_spec 				{ $$ = template("%s %s", $3, $1); }
+|RG_IDENT '['']'':' type_spec 		{ $$ = template("%s %s*", $5, $1); }
 ;
 
 
 // 							******************************		
 func_call:
-RG_IDENT '(' ')'  {$$ = template("%s()", $1);}
-|RG_IDENT '(' call_func_arg_list ')'  {$$ = template("%s(%s)", $1,$3);}
+RG_IDENT '(' ')'  						{$$ = template("%s()", $1);}
+|RG_IDENT '(' call_func_arg_list ')'  	{$$ = template("%s(%s)", $1,$3);}
 ;
 
 call_func_arg_list:	
-call_func_arg_list ',' expr{ $$ = template("%s, %s", $1, $3); }
-| expr { $$ = template("%s", $1); }
+call_func_arg_list ',' expr		{ $$ = template("%s, %s", $1, $3); }
+| expr 							{ $$ = template("%s", $1); }
 ;
 
 body:  %empty { $$="";}
-| decl body {$$ = template("\t%s\n%s", $1,$2);}
-| command body {$$ = template("%s\n%s", $1,$2);}
+| decl body 	{$$ = template("\t%s\n%s", $1,$2);}
+| command body 	{$$ = template("%s\n%s", $1,$2);}
+| if_stmt stmt 	{$$ = template("%s\n%s",  $1, $2);}
 ;
 
 
 // func_decl:
-// KW_FUNCTION RG_IDENT '(' ')' ':' type_spec ';' { $$ = template("%s %s();", $6, $2); }
+// KW_FUNCTION RG_IDENT '(' ')' ':' type_spec ';' 	{ $$ = template("%s %s();", $6, $2); }
 // | KW_FUNCTION RG_IDENT '(' func_arg_list ')' ';' { $$ = template("void %s(%s); ", $2 , $4); }
 // ;
 
@@ -246,6 +250,7 @@ RG_REAL 				{ $$=$1; }
 | RG_DEC 				{ $$=$1; }
 | KW_TRUE 				{ $$="1";}
 | KW_FALSE 				{ $$="0";}
+| KW_NULL 				{$$="null";}
 | '-' expr %prec NEG 	{ $$ = template("-%s", $2); }
 | '+' expr %prec POS 	{ $$ = template("+%s", $2); }
 | '('expr')' 			{ $$ = template("(%s)", $2); }
@@ -270,6 +275,7 @@ RG_REAL 				{ $$=$1; }
 stmt:
 %empty { $$="";}
 | command stmt {$$ = template("%s\n\t%s", $1, $2);}
+| if_stmt stmt {$$ = template("%s\n\t%s",  $1, $2);}
 ;
 
 assign_stmt:
@@ -279,54 +285,40 @@ assign_stmt:
 
 
 command:
-assign_stmt ';' {$$ = template("\t%s;", $1);}
-| while_loop  {$$=template("\t%s",$1  );}
-| for_loop  {$$=template("\t%s",$1  );}
-| KW_CONTINUE ';' {$$="\tcontinue;";}
-| KW_BREAK ';' {$$="\tbreak;";}
-| expr ';'  {$$=template("\t%s;",$1  );}
-// | if_stmt   {$$=template("\t%s",$1  );}
-// | KW_RETURN expr ';' {$$=template("\treturn %s;",$2  );}
-// | KW_RETURN ';' {$$="\treturn ;";}
+assign_stmt ';' 	{$$ = template("\t%s;", $1);}
+| expr ';'  		{$$ = template("\t%s;",$1 );}
+| while_loop  		{$$ = template("\t%s", $1 );}
+| for_loop  		{$$ = template("\t%s", $1 );}
+| KW_CONTINUE ';' 	{$$ = "\tcontinue;";}
+| KW_BREAK ';' 		{$$ = "\tbreak;";}
+
 ;
 
-// selection_statement:
-//  KW_IF '(' expression ')' '{' statement '}'
-//   | IF '(' expression ')' '{' statement '}' ELSE '{' statement '}'
-// ;
-
-
-// if_stmt: 
-// nested_if {$$ = template("%s", $1);}
-// |outer_if {$$ = template("%s", $1);}
-// ;
-
-// nested_if:
-//   KW_IF '(' expr ')' nested_if KW_ELSE nested_if 	{$$ = template("if (%s)\n\t  %s\n \telse\n \t %s", $3, $5, $7);}
-
-// ;
-
-// outer_if:
-//   KW_IF '(' expr ')' command						{$$ = template("if (%s)\n\t %s;", $3, $5);}
-// | KW_IF '(' expr ')' nested_if KW_ELSE outer_if 	{$$ = template("\t%s;", $3);} 
-// ;
+if_stmt:
+ KW_IF '(' expr ')' '{' stmt '}' ';' 	KW_ELSE '{' stmt '}' ';'  	{ $$ = template( "\tif ( %s ) {\n \t%s}; \n\telse {\n \t%s \n\t}; ", $3 ,$6 , $11 );}
+|KW_IF '(' expr ')' '{' stmt '}' ';' 	KW_ELSE    command  		{ $$ = template( "\tif ( %s ) {\n \t%s}; \n\telse \n\t%s", $3 ,$6 , $10 );}
+|KW_IF '(' expr ')' '{' stmt '}' ';' 	KW_ELSE    if_stmt  		{ $$ = template( "\tif ( %s ) {\n \t%s}; \n\telse \n\t%s", $3 ,$6 , $10 );}
+|KW_IF '(' expr ')' '{' stmt '}' ';' 								{ $$ = template( "\tif ( %s ) {\n \t%s};", $3 ,$6);}
+|KW_IF '(' expr ')'    command 			KW_ELSE    command  		{ $$ = template( "\tif ( %s ) \n  \t%s \n\telse\n \t%s", $3 ,$5 , $7  );}
+|KW_IF '(' expr ')'    command 			KW_ELSE    if_stmt  		{ $$ = template( "\tif ( %s ) \n  \t%s \n\telse\n \t%s", $3 ,$5 , $7  );}
+|KW_IF '(' expr ')'    command 			KW_ELSE '{' stmt '}' ';' 	{ $$ = template( "\tif ( %s ) \n  \t%s \n\telse {\n \t%s\n\t}; ", $3 ,$5 , $8  );}
+|KW_IF '(' expr ')'    command   									{ $$ = template( "\tif ( %s ) \n  \t%s                    ", $3 ,$5       );}
+;
 
 while_loop:
-KW_WHILE '(' expr ')'  '{' stmt  '}' ';' {$$=template("while (%s) {\n\t%s};",$3 ,$6 );}
-|KW_WHILE '(' expr ')'   command    {$$=template("while (%s) \n\t%s",$3 ,$5 );}
+KW_WHILE '(' expr ')'  '{' stmt  '}' ';' 	{$$=template("while (%s) {\n\t%s};",$3 ,$6 );}
+|KW_WHILE '(' expr ')'   command    		{$$=template("while (%s) \n\t%s",$3 ,$5 );}
 ;
 
 for_loop:
-KW_FOR '(' assign_stmt ';' expr ';' assign_stmt ')'  '{' stmt  '}' ';' {$$=template("for (%s; %s; %s) {\n\t%s};",$3, $5, $7, $10 );}
-| KW_FOR '(' assign_stmt ';'  ';' assign_stmt ')'  '{' stmt  '}' ';' {$$=template("for (%s; ; %s) {\n\t%s};",$3, $6, $9 );}
-| KW_FOR '(' assign_stmt ';' expr ';' assign_stmt ')'  command  {$$=template("for (%s; %s; %s) \n\t%s",$3, $5, $7, $9 );}
-| KW_FOR '(' assign_stmt ';'  ';' assign_stmt ')'  command  {$$=template("for (%s; ; %s) \n\t%s",$3, $6, $8 );}
+KW_FOR '(' assign_stmt ';' expr ';' assign_stmt ')'  '{' stmt  '}' ';' 	{$$=template("for (%s; %s; %s) {\n\t%s};",$3, $5, $7, $10 );}
+| KW_FOR '(' assign_stmt ';'  ';' assign_stmt ')'  '{' stmt  '}' ';' 	{$$=template("for (%s; ; %s) {\n\t%s};",$3, $6, $9 );}
+| KW_FOR '(' assign_stmt ';' expr ';' assign_stmt ')'  command  		{$$=template("for (%s; %s; %s) \n\t%s",$3, $5, $7, $9 );}
+| KW_FOR '(' assign_stmt ';'  ';' assign_stmt ')'  command  			{$$=template("for (%s; ; %s) \n\t%s",$3, $6, $8 );}
 ;
-
-
 
 %%
 int main () {
   if ( yyparse() != 0 )
-    printf("Rejected!\n");
+    printf("Rejected!\n %s \n",linebuf);
 }

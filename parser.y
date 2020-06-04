@@ -58,11 +58,11 @@ extern char linebuf[500];
 %type <str> type_spec
 %type <str> expr start_func
 %type <str> init_decl init_decl_list
-%type <str> const_decl vars_decl //func_decl
+%type <str> const_decl vars_decl  void_command
 %type <str> sec_func func_arg_list_item func_arg_list type_spec_ret
-%type <str> func_call  call_func_arg_list command 
+%type <str> func_call  call_func_arg_list command  void_body
 %type <str> while_loop for_loop  assign_stmt stmt 
-%type <str> if_stmt //unmatched matched //body2 // nested_if outer_if
+%type <str> if_stmt
 
 
 %right KW_NOT
@@ -172,16 +172,14 @@ RG_IDENT { $$ = $1; }
 // ******************************** FUNCTIONS ********************************
 
 start_func:
-KW_FUNCTION KW_START '(' ')' ':' KW_VOID '{' body '}' 					{ $$ = template("%s", $8); }
-|KW_FUNCTION KW_START '(' ')' ':' KW_VOID '{' body KW_RETURN ';' '}' 	{ $$ = template("%s\treturn;\n", $8); }
+KW_FUNCTION KW_START '(' ')' ':' KW_VOID '{' void_body '}' 					{ $$ = template("%s", $8); }
 ;
 
 // 					******************************	
 
 sec_func:
-KW_FUNCTION RG_IDENT '(' func_arg_list ')' ':' type_spec_ret '{' body KW_RETURN expr ';' '}' ';' 	{ $$ = template("\n%s %s(%s) {\n%s\treturn %s;\n}",$7 , $2, $4, $9, $11); }
-|KW_FUNCTION RG_IDENT '(' func_arg_list ')' ':' KW_VOID '{' body '}' ';' 							{ $$ = template("\nvoid %s(%s) {\n%s}", $2, $4, $9); }
-|KW_FUNCTION RG_IDENT '(' func_arg_list ')' ':' KW_VOID '{' body KW_RETURN ';' '}' ';' 				{ $$ = template("\nvoid %s(%s) {\n%s\treturn; \n}", $2, $4, $9); }
+KW_FUNCTION RG_IDENT '(' func_arg_list ')' ':' type_spec_ret '{' body '}' ';' 	{ $$ = template("\n%s %s(%s) {\n%s}",$7 , $2, $4, $9); }
+|KW_FUNCTION RG_IDENT '(' func_arg_list ')' ':' KW_VOID '{' void_body '}' ';' 							{ $$ = template("\nvoid %s(%s) {\n%s}", $2, $4, $9); }
 ;
 
 func_arg_list:
@@ -206,18 +204,19 @@ call_func_arg_list ',' expr		{ $$ = template("%s, %s", $1, $3); }
 | expr 							{ $$ = template("%s", $1); }
 ;
 
-body:  %empty { $$="";}
+body:
+  %empty { $$="";}
 | decl body 	{$$ = template("\t%s\n%s", $1,$2);}
 | command body 	{$$ = template("%s\n%s", $1,$2);}
 | if_stmt stmt 	{$$ = template("%s\n%s",  $1, $2);}
 ;
 
-
-// func_decl:
-// KW_FUNCTION RG_IDENT '(' ')' ':' type_spec ';' 	{ $$ = template("%s %s();", $6, $2); }
-// | KW_FUNCTION RG_IDENT '(' func_arg_list ')' ';' { $$ = template("void %s(%s); ", $2 , $4); }
-// ;
-
+void_body:
+  %empty { $$="";}
+| decl void_body 	{$$ = template("\t%s\n%s", $1,$2);}
+| void_command void_body 	{$$ = template("%s\n%s", $1,$2);}
+| if_stmt stmt 	{$$ = template("%s\n%s",  $1, $2);}
+;
 
 
 type_spec_ret:
@@ -283,7 +282,6 @@ assign_stmt:
 | RG_IDENT '[' expr ']' TK_ASSGN expr { $$=template("%s[%s]= %s", $1, $3, $6); }
 ;
 
-
 command:
 assign_stmt ';' 	{$$ = template("\t%s;", $1);}
 | expr ';'  		{$$ = template("\t%s;",$1 );}
@@ -291,7 +289,17 @@ assign_stmt ';' 	{$$ = template("\t%s;", $1);}
 | for_loop  		{$$ = template("\t%s", $1 );}
 | KW_CONTINUE ';' 	{$$ = "\tcontinue;";}
 | KW_BREAK ';' 		{$$ = "\tbreak;";}
+| KW_RETURN expr ';'  	{$$ = template("\treturn %s;", $2);}
+;
 
+void_command:
+assign_stmt ';' 	{$$ = template("\t%s;", $1);}
+| expr ';'  		{$$ = template("\t%s;",$1 );}
+| while_loop  		{$$ = template("\t%s", $1 );}
+| for_loop  		{$$ = template("\t%s", $1 );}
+| KW_CONTINUE ';' 	{$$ = "\tcontinue;";}
+| KW_BREAK ';' 		{$$ = "\tbreak;";}
+| KW_RETURN ';' 		{$$ = "\treturn;";}
 ;
 
 if_stmt:

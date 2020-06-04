@@ -5,6 +5,7 @@
 #include "cgen.h"
 
 extern int line_num;
+extern char linebuf[500];
 
 void ssopen(sstream *S)
 {
@@ -43,7 +44,7 @@ char *template(const char *pat, ...)
 void yyerror(char const *pat, ...)
 {
 	va_list arg;
-	fprintf(stderr, "line %d: ", line_num);
+	fprintf(stderr, "in line %d: %s", line_num, linebuf);
 
 	va_start(arg, pat);
 	vfprintf(stderr, pat, arg);

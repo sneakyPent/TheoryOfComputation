@@ -82,8 +82,7 @@ start       return KW_START;
 "="         return TK_ASSGN;
 
 [ \r\t]		/* skip whitespace */
-\n.* 					{ ++line_num; strncpy(linebuf, yytext , sizeof(linebuf));
-                            yyless(1);} 
+\n          ++line_num;
 
 "/*"					          BEGIN(comment);
 <comment>[^*\n]*        /* eat anything that's not a '*' */
@@ -95,5 +94,6 @@ start       return KW_START;
 
 <<EOF>> 	return EOF;
 
-.           { yyerror("lexical error: unrecognized literal '%s'\n", yytext); };
+.           { yyerror("lexical error: unrecognized literal '%s'\n", yytext);
+              strncpy(linebuf, yytext , sizeof(linebuf)); yyless(1); };
 

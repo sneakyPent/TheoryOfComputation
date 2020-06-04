@@ -7,7 +7,8 @@
 
 extern int yylex(void);
 extern int line_num;
-extern char linebuf[500];
+
+
 %}
 
 %union
@@ -183,7 +184,8 @@ KW_FUNCTION RG_IDENT '(' func_arg_list ')' ':' type_spec_ret '{' body '}' ';' 	{
 ;
 
 func_arg_list:
-func_arg_list ',' func_arg_list_item	{ $$ = template("%s, %s", $1, $3); }
+  %empty { $$="";}
+|func_arg_list ',' func_arg_list_item	{ $$ = template("%s, %s", $1, $3); }
 | func_arg_list_item 					{ $$ = template("%s", $1); }
 ;
 
@@ -328,5 +330,5 @@ KW_FOR '(' assign_stmt ';' expr ';' assign_stmt ')'  '{' stmt  '}' ';' 	{$$=temp
 %%
 int main () {
   if ( yyparse() != 0 )
-    printf("Rejected!\n %s \n",linebuf);
+    printf("Rejected!\n ");
 }

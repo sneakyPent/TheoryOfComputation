@@ -139,7 +139,7 @@ const_decl_list ',' const_decl_list_item 	{ $$ = template("%s, %s", $1, $3); }
 ;
 
 const_decl_list_item: 
-decl_list_item_id TK_ASSGN expr { $$ = template("%s =%s", $1, $3);}
+decl_list_item_id TK_ASSGN expr { $$ = template("%s = %s", $1, $3);}
 ;
 
 decl_list_item_id: RG_IDENT { $$ = $1; } 
@@ -183,6 +183,9 @@ sec_func:
 KW_FUNCTION RG_IDENT '(' func_arg_list ')' ':' type_spec_ret '{' body  KW_RETURN expr ';' '}' ';' 	{ $$ = template("\n%s %s(%s) {\n%s\treturn %s;\n}",$7 , $2, $4, $9, $11); }
 |KW_FUNCTION RG_IDENT '(' func_arg_list ')' ':' KW_VOID '{' body KW_RETURN  ';' '}' ';' 		{ $$ = template("\nvoid %s(%s) {\n%s\treturn;\n}", $2, $4, $9); }
 |KW_FUNCTION RG_IDENT '(' func_arg_list ')' ':' KW_VOID '{' body   '}' ';' 		{ $$ = template("\nvoid %s(%s) {\n%s}", $2, $4, $9); }
+|KW_FUNCTION RG_IDENT '(' func_arg_list ')' '{' body KW_RETURN  ';' '}' ';' 		{ $$ = template("\nvoid %s(%s) {\n%s\treturn;\n}", $2, $4, $7); }
+|KW_FUNCTION RG_IDENT '(' func_arg_list ')' '{' body   '}' ';' 		{ $$ = template("\nvoid %s(%s) {\n%s}", $2, $4, $7); }
+
 ;
 
 func_arg_list:
@@ -284,7 +287,7 @@ KW_RETURN expr ';' {$$ = template("\treturn %s;",$2); }
 
 assign_stmt:
   RG_IDENT 				TK_ASSGN expr {$$=template("%s = %s",$1, $3);}
-| RG_IDENT '[' expr ']' TK_ASSGN expr { $$=template("%s[%s]= %s", $1, $3, $6); }
+| RG_IDENT '[' expr ']' TK_ASSGN expr { $$=template("%s[%s] = %s", $1, $3, $6); }
 ;
 
 command:
@@ -306,11 +309,11 @@ if_stmt:
 |KW_IF '(' expr ')'    command 			KW_ELSE    if_stmt  		{ $$ = template( "\tif ( %s ) \n  \t%s \n\telse\n \t%s", $3 ,$5 , $7  );}
 |KW_IF '(' expr ')'    command 			KW_ELSE '{' stmt '}' ';' 	{ $$ = template( "\tif ( %s ) \n  \t%s \n\telse {\n \t%s\n\t}; ", $3 ,$5 , $8  );}
 |KW_IF '(' expr ')'    command   									{ $$ = template( "\tif ( %s ) \n  \t%s  ", $3 ,$5       );}
-|KW_IF '(' expr ')' ret_stmt KW_ELSE ret_stmt						{ $$ = template( " if  ( %s ) \n  \t%s \n\telse \n %s \n",$3,$5,$7);}
-|KW_IF '(' expr ')' ret_stmt KW_ELSE command                        { $$ = template( " if  ( %s ) \n  \t%s \n\telse \n %s \n",$3,$5,$7);}
-|KW_IF '(' expr ')' ret_stmt KW_ELSE  '{' stmt '}' ';'              { $$ = template( " if  ( %s ) \n  \t%s \n\telse {\n %s} \n",$3,$5,$8);}
-|KW_IF '(' expr ')' ret_stmt KW_ELSE if_stmt                        { $$ = template( " if  ( %s ) \n  \t%s \n\telse %s ",$3,$5,$7);}
-|KW_IF '(' expr ')' ret_stmt                                        { $$ = template( " if  ( %s ) \n  \t%s \n",$3,$5);}
+|KW_IF '(' expr ')' ret_stmt KW_ELSE ret_stmt						{ $$ = template( "\tif  ( %s ) \n  \t%s \n\telse \n %s \n",$3,$5,$7);}
+|KW_IF '(' expr ')' ret_stmt KW_ELSE command                        { $$ = template( "\tif  ( %s ) \n  \t%s \n\telse \n %s \n",$3,$5,$7);}
+|KW_IF '(' expr ')' ret_stmt KW_ELSE  '{' stmt '}' ';'              { $$ = template( "\tif  ( %s ) \n  \t%s \n\telse {\n %s} \n",$3,$5,$8);}
+|KW_IF '(' expr ')' ret_stmt KW_ELSE if_stmt                        { $$ = template( "\tif  ( %s ) \n  \t%s \n\telse %s ",$3,$5,$7);}
+|KW_IF '(' expr ')' ret_stmt                                        { $$ = template( "\tif  ( %s ) \n  \t%s \n",$3,$5);}
 
 ;
 

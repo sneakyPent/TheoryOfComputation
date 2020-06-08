@@ -6,7 +6,7 @@
   #include "parser.tab.h"
 
   int line_num = 1;
-  char linebuf[500];
+  char lbuf[500];
 %}
 
 %x comment
@@ -23,6 +23,9 @@ REAL            {DECIMAL}([eE][+-]?{NUMBER})?
 STR             ('(({ESCAPE_CHAR}*)|({CONST_STR}*))*')|(\"(({ESCAPE_CHAR}*)|({CONST_STR}*))*\")
 
 %%
+
+\n.*					{ ++line_num; strncpy(lbuf, yytext , sizeof(lbuf)); yyless(1) ; 
+                    } /* save the new line in a buffer for better syntax error recognition*/ 
 
 number      return KW_NUMBER; /*  KEYWORDS  */
 false       return KW_FALSE;
@@ -81,7 +84,6 @@ start       return KW_START;
 "="         return TK_ASSGN;
 
 [ \r\t]		/* skip whitespace */
-\n          ++line_num;
 
 "/*"					          BEGIN(comment); printf("%s", yytext);
 <comment>[^*\n]*        printf("%s", yytext); /* eat anything that's not a '*' */
@@ -93,6 +95,5 @@ start       return KW_START;
 
 <<EOF>> 	return EOF;
 
-.           { yyerror("lexical error: unrecognized literal '%s'\n", yytext);
-              strncpy(linebuf, yytext , sizeof(linebuf)); yyless(1); };
+.           { yyerror("lexical error: unrecognized literal '%s'\n", yytext);};
 

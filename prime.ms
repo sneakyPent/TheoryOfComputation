@@ -9,7 +9,7 @@ function prime(n: number): boolean {
    if (n < 0) 
       result = prime(-n);
    else if (n < 2) 
-      result = false;
+      return false;
    else if (n == 2) 
       result = true;
    else if (n % 2 == 0) 
@@ -19,7 +19,7 @@ function prime(n: number): boolean {
       isPrime = true;
       while (isPrime and (i < n / 2) ) { 
          isPrime = n % i != 0;
-         i = i + 2;
+         i = i  2;
       };
       result = isPrime;
    };
@@ -40,6 +40,7 @@ function start(): void {
          writeString(" ");
       };
       num = num + 1;
+	  return;
    };
   
    writeString("\n");

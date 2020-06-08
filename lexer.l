@@ -4,7 +4,6 @@
   #include <string.h>
   #include "cgen.h"
   #include "parser.tab.h"
-  // #include "mslib.h"
 
   int line_num = 1;
   char linebuf[500];
@@ -84,13 +83,13 @@ start       return KW_START;
 [ \r\t]		/* skip whitespace */
 \n          ++line_num;
 
-"/*"					          BEGIN(comment);
-<comment>[^*\n]*        /* eat anything that's not a '*' */
-<comment>"*"+[^*/\n]*   /* eat up '*'s not followed by ')'s */
-<comment>\n             ++line_num;
-<comment>"*"+"/"        BEGIN(INITIAL);
+"/*"					          BEGIN(comment); printf("%s", yytext);
+<comment>[^*\n]*        printf("%s", yytext); /* eat anything that's not a '*' */
+<comment>"*"+[^*/\n]*   printf("%s", yytext); /* eat up '*'s not followed by ')'s */
+<comment>\n             printf("%s", yytext); ++line_num;
+<comment>"*"+"/"        printf("%s\n", yytext); BEGIN(INITIAL);
 
-"//"[^\n]*				/* eat line comments */
+"//"[^\n]*				      printf("%s\n", yytext); /* eat line comments */
 
 <<EOF>> 	return EOF;
 

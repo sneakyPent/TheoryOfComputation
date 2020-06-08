@@ -29,4 +29,10 @@ char* readString() {
 
 double readNumber() { return atof(readString()); }
 
+double pow (double b, double e){
+    int number = 1;
+    for (int i = 0; i < e; ++i)
+        number *= b;
+    return(number);
+}
 #endif 

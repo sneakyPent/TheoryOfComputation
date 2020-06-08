@@ -4,14 +4,8 @@ FILENAME=$(basename $@)
 PRN=$(basename $(PARSERNAME) )
 default:
 	@ echo Give an argument and specify dependencies
-	@ echo
-	@ echo "-------------ARGUMENTS--------------"
-	@ echo "lexerName.o 	--> (where lexerName is the name of .l file)"
-	@ echo "clean  		--> clean directory"
-	@ echo
-	@ echo "-------------DEPENDENCIES--------------"
-	@ echo " TESTFILE --> the Name of the .in file will be used as test."
-	@ echo " LEXERNAME --> the Name of the .l file will be used."
+	@ echo example for bison \"make MBISON \"TARGETNAME=myprogram\" \"LEXERNAME=lexer.l\" \"PARSERNAME=parser.y\" \"TESTFILE=prime.ms\"\"
+	@ echo "for .c file execution run make exec"
 
 
 BISON: *.l *.y 
@@ -27,7 +21,6 @@ MBISON: *.l *.y
 	$(LEX) -o $(TARGETNAME).yy.c $(LEXERNAME)
 	$(CC) -o $(TARGETNAME) $(TARGETNAME).yy.c $(PRN).tab.c cgen.c -lfl
 	./$(TARGETNAME) < $(TESTFILE) > $(TARGETNAME).c
-	$(RM) $(TARGETNAME)
 
 
 FLEX: $(LEXERNAME).o
@@ -45,6 +38,7 @@ clean:
 
 help: default
 
-
+exec: 
+	gcc -std=c99 -o exe  myprogram.c
 display:
 	cat $(LEXERNAME).o
